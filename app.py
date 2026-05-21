@@ -118,7 +118,7 @@ def init_session():
     defaults = {
         "screen": "inicio",
         "mode": "medico",
-        "section": 0,
+        "q_index": 0,
         "answers": {},
         "patient_name": "",
         "patient_age": "",
@@ -150,7 +150,7 @@ def show_inicio():
             st.session_state.mode = "medico"
             st.session_state.patient_name = patient_name
             st.session_state.patient_age = patient_age
-            st.session_state.section = 0
+            st.session_state.q_index = 0
             st.session_state.answers = {}
             st.session_state.screen = "preguntas"
             st.rerun()
@@ -159,7 +159,7 @@ def show_inicio():
             st.session_state.mode = "paciente"
             st.session_state.patient_name = patient_name
             st.session_state.patient_age = patient_age
-            st.session_state.section = 0
+            st.session_state.q_index = 0
             st.session_state.answers = {}
             st.session_state.screen = "preguntas"
             st.rerun()
@@ -168,52 +168,49 @@ def show_inicio():
 # ── Pantalla: Preguntas ───────────────────────────────────────────────────────
 def show_preguntas():
     mode = st.session_state.mode
-    section_idx = st.session_state.section
-    total_sections = len(SECTIONS)
+    q_index = st.session_state.q_index
+    total = len(QUESTIONS)
+    q = QUESTIONS[q_index]
 
     # Barra de progreso
-    progress = (section_idx + 1) / total_sections
-    st.progress(progress)
+    st.progress((q_index + 1) / total)
     st.markdown(
-        f'<p class="section-label">Sección {section_idx + 1} de {total_sections}: '
-        f'<b>{SECTIONS[section_idx]}</b></p>',
+        f'<p class="section-label">Pregunta {q_index + 1} de {total} · '
+        f'<b>{SECTIONS[q["section"]]}</b></p>',
         unsafe_allow_html=True,
     )
 
-    # Preguntas de esta sección
-    section_questions = [q for q in QUESTIONS if q["section"] == section_idx]
+    # Pregunta actual
+    text = q["medical"] if mode == "medico" else q["patient"]
+    opt_key = "text_medical" if mode == "medico" else "text_patient"
+    options = [opt[opt_key] for opt in q["options"]]
+    current_idx = st.session_state.answers.get(q["id"])
 
-    for q in section_questions:
-        text = q["medical"] if mode == "medico" else q["patient"]
-        opt_key = "text_medical" if mode == "medico" else "text_patient"
-        options = [opt[opt_key] for opt in q["options"]]
-        current_idx = st.session_state.answers.get(q["id"])
+    st.markdown('<div class="question-card">', unsafe_allow_html=True)
+    st.markdown(f"**{text}**")
 
-        st.markdown('<div class="question-card">', unsafe_allow_html=True)
-        st.markdown(f"**{text}**")
+    for i, opt_text in enumerate(options):
+        btn_type = "primary" if current_idx == i else "secondary"
+        if st.button(opt_text, key=f"opt_{q['id']}_{i}", type=btn_type, use_container_width=True):
+            st.session_state.answers[q["id"]] = i
+            st.rerun()
 
-        for i, opt_text in enumerate(options):
-            btn_type = "primary" if current_idx == i else "secondary"
-            if st.button(opt_text, key=f"opt_{q['id']}_{i}", type=btn_type, use_container_width=True):
-                st.session_state.answers[q["id"]] = i
-                st.rerun()
-
-        if mode == "medico":
-            weight_label = {"3": "Alto", "2": "Moderado", "1": "Bajo"}.get(str(q["weight"]), "—")
-            st.markdown(
-                f'<div class="clinical-note">🩺 {q["clinical_note"]} &nbsp;·&nbsp; Peso: <b>{weight_label}</b></div>',
-                unsafe_allow_html=True,
-            )
-        st.markdown("</div>", unsafe_allow_html=True)
+    if mode == "medico":
+        weight_label = {"3": "Alto", "2": "Moderado", "1": "Bajo"}.get(str(q["weight"]), "—")
+        st.markdown(
+            f'<div class="clinical-note">🩺 {q["clinical_note"]} &nbsp;·&nbsp; Peso: <b>{weight_label}</b></div>',
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
     # Navegación
     col_back, col_next = st.columns(2)
     with col_back:
-        if section_idx > 0:
+        if q_index > 0:
             if st.button("← Anterior", use_container_width=True):
-                st.session_state.section -= 1
+                st.session_state.q_index -= 1
                 st.rerun()
         else:
             if st.button("← Inicio", use_container_width=True):
@@ -221,9 +218,9 @@ def show_preguntas():
                 st.rerun()
 
     with col_next:
-        if section_idx < total_sections - 1:
+        if q_index < total - 1:
             if st.button("Siguiente →", type="primary", use_container_width=True):
-                st.session_state.section += 1
+                st.session_state.q_index += 1
                 st.rerun()
         else:
             if st.button("Ver resultado →", type="primary", use_container_width=True):
@@ -315,7 +312,7 @@ def show_resultado():
     if st.button("← Nueva evaluación", use_container_width=True):
         st.session_state.screen = "inicio"
         st.session_state.answers = {}
-        st.session_state.section = 0
+        st.session_state.q_index = 0
         st.session_state.patient_name = ""
         st.session_state.patient_age = ""
         st.rerun()
