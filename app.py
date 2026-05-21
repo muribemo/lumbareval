@@ -172,7 +172,7 @@ def show_preguntas():
     total_sections = len(SECTIONS)
 
     # Barra de progreso
-    progress = section_idx / total_sections
+    progress = (section_idx + 1) / total_sections
     st.progress(progress)
     st.markdown(
         f'<p class="section-label">Sección {section_idx + 1} de {total_sections}: '
