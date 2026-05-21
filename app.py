@@ -185,7 +185,8 @@ def show_preguntas():
 
     for q in section_questions:
         text = q["medical"] if mode == "medico" else q["patient"]
-        options = [opt[f"text_{mode}"] for opt in q["options"]]
+        opt_key = "text_medical" if mode == "medico" else "text_patient"
+        options = [opt[opt_key] for opt in q["options"]]
         current_idx = st.session_state.answers.get(q["id"])
 
         st.markdown('<div class="question-card">', unsafe_allow_html=True)
@@ -315,6 +316,8 @@ def show_resultado():
         st.session_state.screen = "inicio"
         st.session_state.answers = {}
         st.session_state.section = 0
+        st.session_state.patient_name = ""
+        st.session_state.patient_age = ""
         st.rerun()
 
 
